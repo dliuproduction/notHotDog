@@ -9,15 +9,21 @@
 import UIKit
 
 class SettingsViewController: UITableViewController {
-
+    
     let cellHeight: CGFloat = 50
     let fontSize: CGFloat = 35
     
-    weak var cameraVC: SSDCameraViewController?
+    weak var cameraVC: CameraViewController?
+    weak var ssdCameraVC: SSDCameraViewController?
     
     let sections: [String] = [
         "Languages",
         "About"
+    ]
+    
+    let abouts: [(String, Double)]  = [
+        ("Version", 1),
+        ("Build", 1)
     ]
     
     var languages: [Language] = [
@@ -25,23 +31,13 @@ class SettingsViewController: UITableViewController {
         Language(symbol: "🇨🇳", name: "Simplified Chinese"),
         Language(symbol: "🇹🇼", name: "Traditional Chinese"),
         Language(symbol: "🇯🇵", name: "Japanese"),
-        Language(symbol: "🇫🇷", name: "French")
-    ]
-    
-    let abouts: [String]  = [
-        "Version",
-        "Build"
-    ]
-
-    class Language{
-        var symbol: String
-        var name: String
-        
-        init(symbol: String, name: String){
-            self.symbol = symbol
-            self.name = name
-        }
-    }
+        Language(symbol: "🇰🇷", name: "Korean"),
+        Language(symbol: "🇫🇷", name: "French"),
+        Language(symbol: "🇩🇪", name: "German"),
+        Language(symbol: "🇮🇹", name: "Italian"),
+        Language(symbol: "🇬🇷", name: "Greek"),
+        Language(symbol: "🇪🇸", name: "Spanish"),
+]
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -53,10 +49,12 @@ class SettingsViewController: UITableViewController {
         let tableViewEditingMode = tableView.isEditing
         tableView.setEditing(!tableViewEditingMode, animated: true)
     }
-
+    
     // MARK: - Table view data source
-
+    
     @IBAction func didSelectDoneButton(_ sender: Any) {
+        let encodedData = NSKeyedArchiver.archivedData(withRootObject: languages)
+        UserDefaults.standard.set(encodedData, forKey: "LanguageSortOrder")
         self.dismiss(animated: true, completion: nil)
     }
     
@@ -64,7 +62,7 @@ class SettingsViewController: UITableViewController {
         // #warning Incomplete implementation, return the number of sections
         return 2
     }
-
+    
     override func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
         // #warning Incomplete implementation, return the number of rows
         if section == 0 {
@@ -73,23 +71,28 @@ class SettingsViewController: UITableViewController {
             return abouts.count
         }
     }
-
+    
     override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         let cell: UITableViewCell = tableView.dequeueReusableCell(withIdentifier: "LanguageCell", for: indexPath)
+        cell.textLabel?.font = UIFont(name:"Avenir", size:22)
         switch (indexPath.section) {
         case 0:
             let language = languages[indexPath.row]
             cell.textLabel?.text = "\(language.symbol) - \(language.name)"
+            cell.showsReorderControl = true
+            return cell
+            
         default:
+            let cell: UITableViewCell = tableView.dequeueReusableCell(withIdentifier: "AboutCell", for: indexPath)
             let about = abouts[indexPath.row]
-            cell.textLabel?.text = "\(about)"
+            cell.textLabel?.text = "\(about.0)"
+            cell.detailTextLabel?.text = "\(about.1)"
             cell.isUserInteractionEnabled = false
+            cell.textLabel?.font = UIFont(name:"Avenir", size:22)
+            cell.detailTextLabel?.font = UIFont(name:"Avenir", size:22)
+            cell.showsReorderControl = true
+            return cell
         }
-        
-        cell.textLabel?.font = UIFont(name:"Avenir", size:22)
-        cell.showsReorderControl = true
-        
-        return cell
     }
     
     // Override to support rearranging the table view.
@@ -97,7 +100,7 @@ class SettingsViewController: UITableViewController {
         let movedLanguageCell = languages.remove(at: fromIndexPath.row)
         languages.insert(movedLanguageCell, at: to.row)
     }
-
+    
     // Override to support conditional editing of the table view.
     override func tableView(_ tableView: UITableView, canEditRowAt indexPath: IndexPath) -> Bool {
         // Return false if you do not want the specified item to be editable.
@@ -118,13 +121,12 @@ class SettingsViewController: UITableViewController {
     override func tableView(_ tableView: UITableView, titleForHeaderInSection section: Int) -> String? {
         return sections[section]
     }
-
+    
     override func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
         if let cell = tableView.cellForRow(at: indexPath) {
             cell.accessoryType = .checkmark
-            if let selectedCell = tableView.indexPath(for: cell) {
-                cameraVC?.selectedLang = selectedCell[1]
-            }
+            cameraVC?.selectedLang = cell.textLabel!.text!
+            ssdCameraVC?.selectedLang = cell.textLabel!.text!
         }
     }
     
@@ -135,7 +137,14 @@ class SettingsViewController: UITableViewController {
     }
     
     override func viewWillAppear(_ animated: Bool) {
-       
+        if let data = UserDefaults.standard.data(forKey: "LanguageSortOrder"),
+            let languages = NSKeyedUnarchiver.unarchiveObject(with: data) as? [Language] {
+            self.languages = languages
+        }
     }
-
+    
+    override func viewWillDisappear(_ animated: Bool) {
+        
+    }
+    
 }
